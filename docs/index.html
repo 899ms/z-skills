@@ -144,7 +144,8 @@
   .install-main .hint{color:var(--muted);font-size:14px;margin:0 0 18px}
   .cmdbar{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:#0a0e26;border:1px solid var(--stroke);font-family:var(--font-mono);font-size:14px}
   .cmdbar .dollar{color:var(--emerald)}
-  .cmdbar code{flex:1;overflow-x:auto;white-space:nowrap;color:#dfe6ff}
+  .cmdbar code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;color:#dfe6ff;scrollbar-width:none;-ms-overflow-style:none}
+  .cmdbar code::-webkit-scrollbar{display:none}
   .cmdbar code .kw{color:var(--cyan)}
   .cmdbar code .pkg{color:var(--amber)}
   .cmdbar code .flag{color:var(--pink)}
@@ -199,7 +200,8 @@
   .tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px;position:relative}
   .tags span{font-size:11.5px;color:var(--faint);background:rgba(255,255,255,.04);border:1px solid var(--stroke);padding:4px 9px;border-radius:7px;font-family:var(--font-body)}
   .npx{position:relative;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 13px;border-radius:11px;background:#080c20;border:1px solid var(--stroke)}
-  .npx code{flex:1;font-family:var(--font-mono);font-size:11.8px;color:#b9c4ee;overflow-x:auto;white-space:nowrap;line-height:1.5}
+  .npx code{flex:1;min-width:0;font-family:var(--font-mono);font-size:11.5px;color:#b9c4ee;line-height:1.6;white-space:normal;overflow-wrap:anywhere;scrollbar-width:none;-ms-overflow-style:none}
+  .npx code::-webkit-scrollbar{display:none}
   .npx code .kw{color:var(--cyan)}
   .npx code .pkg{color:var(--amber)}
   .npx code .flag{color:var(--pink)}
