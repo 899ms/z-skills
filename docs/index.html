@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,209 +7,325 @@
 <meta name="description" content="tjxj/z-skills —— 17 个可复用的本地 Agent Skills：网页素材采集、视频下载、文档解析、邮件表格、Markdown 转 Word/PDF、证据型问答、手写幻灯片、四格漫画。每条附 npx 安装命令。" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#060709;
-    --panel:#0a0c11;
-    --panel2:#0d1017;
-    --bar:#0b0e15;
-    --line:#1a2030;
-    --line2:#28324a;
+    --bg:#07080c;
+    --panel:#0b0e15;
+    --panel2:#0e121b;
+    --bar:#0c1018;
+    --code:#06080d;
+    --line:#1b2233;
+    --line2:#2b3550;
     --amber:#ffb454;
-    --cyan:#4fd6ff;
-    --green:#5ef08a;
-    --mag:#ff7bd5;
-    --vio:#b78bff;
-    --text:#c7d0e0;
-    --dim:#a9b4c9;
-    --faint:#6d798f;
-    --mono:'JetBrains Mono','SF Mono',ui-monospace,Menlo,Consolas,'PingFang SC',monospace;
-    --glow-a:0 0 14px rgba(255,180,84,.35);
-    --glow-c:0 0 14px rgba(79,214,255,.35);
+    --cyan:#54d8ff;
+    --green:#63ec92;
+    --mag:#ff7fd6;
+    --vio:#bb93ff;
+    --red:#ff6b6b;
+    --text:#d6deee;
+    --dim:#a9b4ca;
+    --faint:#727e98;
+    --g1:rgba(255,180,84,.03);
+    --g2:rgba(84,216,255,.025);
+    --r1:rgba(255,180,84,.07);
+    --r2:rgba(84,216,255,.07);
+    --glow-a:0 0 16px rgba(255,180,84,.4);
+    --glow-c:0 0 16px rgba(84,216,255,.4);
+    --glow-g:0 0 14px rgba(99,236,146,.35);
+    --shadow:rgba(0,0,0,.65);
+    --sel:rgba(255,180,84,.32);
+    --scan:.55;
+  }
+  :root[data-theme="light"]{
+    --bg:#ede9dd;
+    --panel:#f7f4ea;
+    --panel2:#fbf9f2;
+    --bar:#f2eee1;
+    --code:#f2eee1;
+    --line:#d9d2bd;
+    --line2:#bdb398;
+    --amber:#9a5c05;
+    --cyan:#0a6c86;
+    --green:#2c7a32;
+    --mag:#ad2268;
+    --vio:#6532b0;
+    --red:#c0392b;
+    --text:#2a261d;
+    --dim:#504b3c;
+    --faint:#8a8170;
+    --g1:rgba(120,80,10,.05);
+    --g2:rgba(10,108,134,.04);
+    --r1:rgba(154,92,5,.08);
+    --r2:rgba(10,108,134,.08);
+    --glow-a:none;
+    --glow-c:none;
+    --glow-g:none;
+    --shadow:rgba(80,60,20,.2);
+    --sel:rgba(154,92,5,.24);
+    --scan:0;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
-    margin:0;font-family:var(--mono);color:var(--text);background:var(--bg);
-    overflow-x:hidden;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.6;
+    margin:0;font-family:'JetBrains Mono','SF Mono',ui-monospace,Menlo,Consolas,'PingFang SC',monospace;
+    color:var(--text);background-color:var(--bg);
     background-image:
-      linear-gradient(rgba(255,180,84,.022) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(79,214,255,.018) 1px,transparent 1px),
-      radial-gradient(900px 560px at 78% -12%, rgba(255,180,84,.06), transparent 60%),
-      radial-gradient(760px 520px at 6% 112%, rgba(79,214,255,.06), transparent 60%);
-    background-size:30px 30px,30px 30px,100% 100%,100% 100%;
+      linear-gradient(var(--g1) 1px,transparent 1px),
+      linear-gradient(90deg,var(--g2) 1px,transparent 1px),
+      radial-gradient(1000px 600px at 82% -12%,var(--r1),transparent 60%),
+      radial-gradient(800px 560px at 4% 110%,var(--r2),transparent 60%);
+    background-size:28px 28px,28px 28px,100% 100%,100% 100%;
+    overflow-x:hidden;font-size:15px;line-height:1.65;
+    transition:background-color .35s ease,color .35s ease;
+    -webkit-font-smoothing:antialiased;
   }
   a{color:var(--cyan);text-decoration:none}
-  ::selection{background:rgba(255,180,84,.3);color:#fff}
+  ::selection{background:var(--sel)}
+  code{font-family:inherit}
 
-  /* CRT 覆盖层：扫描线 + 暗角 + 微闪 */
-  .crt-scan,.crt-vig{position:fixed;inset:0;pointer-events:none;z-index:80}
-  .crt-scan{background:repeating-linear-gradient(0deg,rgba(0,0,0,.20) 0 1px,transparent 1px 3px);opacity:.5;animation:flick 6s steps(2) infinite}
-  .crt-vig{background:radial-gradient(125% 105% at 50% 42%,transparent 52%,rgba(0,0,0,.6) 100%)}
-  @keyframes flick{0%,100%{opacity:.5}50%{opacity:.42}}
+  /* CRT */
+  .crt{position:fixed;inset:0;z-index:90;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);
+    opacity:var(--scan);transition:opacity .4s}
+  :root[data-theme="dark"] .crt{animation:flick 7s steps(3) infinite}
+  @keyframes flick{0%,100%{opacity:.55}45%{opacity:.48}70%{opacity:.6}}
+  .vignette{position:fixed;inset:0;z-index:89;pointer-events:none;
+    background:radial-gradient(130% 100% at 50% 40%,transparent 58%,rgba(0,0,0,.45) 100%)}
+  :root[data-theme="light"] .vignette{display:none}
 
-  .wrap{max-width:1140px;margin:0 auto;padding:0 22px}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 22px}
 
-  /* ── 顶部状态栏（tmux 风） ── */
-  .statusbar{position:sticky;top:0;z-index:70;background:linear-gradient(180deg,#0c1017,#0a0d13);
-    border-bottom:1px solid var(--line2);box-shadow:0 6px 24px -12px #000}
-  .statusbar .in{max-width:1140px;margin:0 auto;padding:9px 22px;display:flex;align-items:center;gap:16px;font-size:13px}
-  .sb-left{display:flex;align-items:center;gap:10px}
-  .sb-logo{color:var(--amber);text-shadow:var(--glow-a);font-weight:700}
+  /* ── 状态栏 ── */
+  .statusbar{position:sticky;top:0;z-index:70;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border-bottom:1px solid var(--line2);box-shadow:0 8px 28px -16px var(--shadow)}
+  .sb-in{max-width:1160px;margin:0 auto;padding:9px 22px;display:flex;align-items:center;gap:14px;font-size:13px}
+  .sb-logo{color:var(--amber);font-weight:800;text-shadow:var(--glow-a);white-space:nowrap}
   .sb-sep{color:var(--faint)}
-  .sb-item{color:var(--dim)}
-  .sb-item b{color:var(--text);font-weight:500}
-  .sb-right{margin-left:auto;display:flex;gap:14px;align-items:center}
-  .sb-right a{color:var(--dim)}
-  .sb-right a:hover{color:var(--amber)}
-  .sb-live{display:inline-flex;align-items:center;gap:6px;color:var(--green)}
-  .sb-live i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .sb-meta{color:var(--dim)}
+  .sb-meta b{color:var(--text);font-weight:700}
+  .sb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .sb-link{padding:6px 11px;border-radius:6px;color:var(--dim);transition:.16s}
+  .sb-link:hover{color:var(--amber);background:var(--panel2)}
+  .theme-btn{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:6px;cursor:pointer;
+    background:var(--panel2);border:1px solid var(--line2);color:var(--dim);font-family:inherit;font-size:12.5px;transition:.16s}
+  .theme-btn:hover{color:var(--amber);border-color:var(--amber)}
+  .theme-btn .ti{font-size:14px;line-height:1}
+  .sb-gh{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:6px;font-weight:700;
+    background:linear-gradient(135deg,var(--amber),var(--cyan));color:#10131a;border:none}
+  :root[data-theme="light"] .sb-gh{color:#fff}
 
   /* ── 终端窗口 ── */
-  .win{background:linear-gradient(180deg,var(--panel),#080a0f);border:1px solid var(--line2);border-radius:9px;overflow:hidden;
-    box-shadow:0 24px 60px -34px #000,inset 0 1px 0 rgba(255,255,255,.03)}
-  .win-bar{display:flex;align-items:center;gap:8px;padding:8px 13px;background:var(--bar);border-bottom:1px solid var(--line);font-size:12px}
+  .win{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line2);border-radius:10px;
+    overflow:hidden;box-shadow:0 26px 60px -34px var(--shadow),inset 0 1px 0 rgba(255,255,255,.04)}
+  .win-bar{display:flex;align-items:center;gap:9px;padding:8px 13px;background:var(--bar);border-bottom:1px solid var(--line);font-size:12px}
   .wdots{display:flex;gap:6px}
-  .wdots i{width:10px;height:10px;border-radius:50%;display:block}
+  .wdots i{width:10px;height:10px;border-radius:50%}
   .wdots i:nth-child(1){background:#ff5f57}.wdots i:nth-child(2){background:#febc2e}.wdots i:nth-child(3){background:#28c840}
-  .wtitle{color:var(--faint);margin-left:4px}
+  .wtitle{color:var(--faint)}
   .wtitle b{color:var(--dim);font-weight:500}
-  .wtag{margin-left:auto;font-size:11px;color:var(--faint)}
+  .wtag{margin-left:auto;color:var(--faint);font-size:11.5px}
 
   /* ── Hero ── */
-  .hero{padding:64px 0 40px;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
-  .eyebrow{color:var(--green);font-size:13px;margin-bottom:18px;text-shadow:0 0 10px rgba(94,240,138,.3)}
-  .eyebrow .cmt{color:var(--faint)}
-  h1{font-size:clamp(34px,4.6vw,54px);line-height:1.12;margin:0 0 18px;font-weight:700;letter-spacing:-.5px;color:var(--amber);text-shadow:var(--glow-a)}
-  h1 .ln2{color:var(--text);text-shadow:none}
-  h1 .kw{color:var(--cyan);text-shadow:var(--glow-c)}
-  .sub{color:var(--dim);font-size:15px;line-height:1.8;max-width:33em;margin:0 0 28px}
-  .sub .p{color:var(--green)}
-  .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:34px}
-  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:6px;font-family:var(--mono);font-weight:700;font-size:14px;cursor:pointer;transition:.18s;border:1px solid transparent}
-  .btn.primary{background:var(--amber);color:#1a1206;box-shadow:var(--glow-a)}
-  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 0 22px rgba(255,180,84,.55)}
-  .btn.term{background:transparent;border-color:var(--line2);color:var(--cyan)}
-  .btn.term:hover{border-color:var(--cyan);box-shadow:var(--glow-c);transform:translateY(-2px)}
-  .stats{display:flex;gap:30px;font-size:13px}
-  .stats .n{font-size:26px;font-weight:700;color:var(--amber);text-shadow:var(--glow-a)}
-  .stats .l{color:var(--faint)}
+  .hero{padding:62px 0 30px;display:grid;grid-template-columns:1.02fr .98fr;gap:42px;align-items:center}
+  .eyebrow{color:var(--green);font-size:13px;margin-bottom:16px;text-shadow:var(--glow-g)}
+  h1{font-size:clamp(32px,4.5vw,52px);line-height:1.14;margin:0 0 18px;font-weight:800;letter-spacing:-1px}
+  h1 .a{color:var(--amber);text-shadow:var(--glow-a)}
+  h1 .c{color:var(--cyan);text-shadow:var(--glow-c)}
+  .sub{color:var(--dim);font-size:15px;line-height:1.85;max-width:34em;margin:0 0 26px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:7px;font-family:inherit;font-weight:700;
+    font-size:14px;cursor:pointer;border:1px solid transparent;transition:.18s}
+  .btn.primary{background:var(--amber);color:#171206;box-shadow:var(--glow-a)}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 0 26px rgba(255,180,84,.55)}
+  .btn.ghost{background:transparent;border-color:var(--line2);color:var(--cyan)}
+  .btn.ghost:hover{border-color:var(--cyan);transform:translateY(-2px);box-shadow:var(--glow-c)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .stat{padding:14px 16px;border-radius:9px;background:var(--panel);border:1px solid var(--line)}
+  .stat .n{font-size:24px;font-weight:800;color:var(--amber);text-shadow:var(--glow-a);line-height:1.2}
+  .stat .l{color:var(--faint);font-size:12px}
 
-  .boot{padding:20px 22px;font-size:13.5px;line-height:2}
-  .boot .pr{color:var(--green)}
-  .boot .ok{color:var(--green)}
-  .boot .ar{color:var(--amber)}
-  .boot .cy{color:var(--cyan)}
-  .boot .dm{color:var(--faint)}
-  .cursor{display:inline-block;width:9px;height:16px;background:var(--amber);vertical-align:-3px;box-shadow:var(--glow-a);animation:blink 1.05s steps(1) infinite}
+  /* 脚本演示终端 */
+  .demo-body{padding:16px 18px;font-size:12.8px;line-height:1.85;min-height:300px;max-height:420px;overflow:hidden}
+  .demo-body .pr{color:var(--green)}
+  .demo-body .cmd{color:var(--text)}
+  .demo-body .dir{color:var(--cyan)}
+  .demo-body .file{color:var(--dim)}
+  .demo-body .ok{color:var(--green)}
+  .demo-body .key{color:var(--amber)}
+  .demo-body .cmt{color:var(--faint)}
+  .demo-body .flag{color:var(--mag)}
+  .dcursor{display:inline-block;width:8px;height:14px;background:var(--amber);vertical-align:-2px;animation:blink 1s steps(1) infinite}
   @keyframes blink{50%{opacity:0}}
 
-  /* ── 区块 ── */
-  section{padding:56px 0}
+  /* ── 通用 ── */
+  section{padding:58px 0}
   .shead{margin-bottom:30px}
-  .stag{color:var(--cyan);font-size:13px}
-  .shead h2{font-size:clamp(24px,3vw,34px);margin:8px 0 6px;font-weight:700;color:var(--text)}
-  .shead h2 .pr{color:var(--green)}
-  .shead p{color:var(--dim);font-size:14.5px;margin:0;max-width:44em}
+  .stag{color:var(--cyan);font-size:13px;text-shadow:var(--glow-c)}
+  .shead h2{font-size:clamp(24px,3vw,33px);margin:9px 0 7px;font-weight:800;letter-spacing:-.5px}
+  .shead p{color:var(--dim);font-size:14.5px;margin:0;max-width:48em}
+
+  /* ── 交互终端 ── */
+  .shell-screen{padding:16px 18px;height:360px;overflow-y:auto;background:var(--code);
+    font-size:13px;line-height:1.8;scrollbar-width:thin}
+  .shell-line{white-space:pre-wrap;word-break:break-word}
+  .shell-line .pr{color:var(--green)}
+  .shell-line .dir{color:var(--cyan)}
+  .l-ok{color:var(--green)}.l-dim{color:var(--dim)}.l-faint{color:var(--faint)}
+  .l-amber{color:var(--amber)}.l-cyan{color:var(--cyan)}.l-mag{color:var(--mag)}.l-vio{color:var(--vio)}.l-red{color:var(--red)}
+  .shell-input{display:flex;align-items:center;gap:9px;padding:11px 16px;border-top:1px solid var(--line);background:var(--bar)}
+  .shell-input .pr{color:var(--green);flex-shrink:0}
+  .shell-input input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:inherit;font-size:13.5px;caret-color:var(--amber)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;padding:10px 16px 13px;border-top:1px solid var(--line);background:var(--panel)}
+  .chip{padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--faint);
+    border:1px solid var(--line);background:var(--code);transition:.15s}
+  .chip:hover{color:var(--amber);border-color:var(--amber)}
 
   /* ── 安装 ── */
-  .inst{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}
-  .inst .win{padding:0}
-  .inst-body{padding:22px}
-  .inst-body h3{margin:0 0 4px;font-size:16px;color:var(--amber)}
-  .inst-body .hint{color:var(--faint);font-size:13px;margin:0 0 16px}
-  .inst-body .hint .v{color:var(--amber)}
-  .cmdrow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:6px;background:#07090d;border:1px solid var(--line);font-size:13.5px}
+  .inst-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}
+  .ib{padding:22px}
+  .ib h3{margin:0 0 4px;font-size:16px;color:var(--amber)}
+  .ib .hint{color:var(--faint);font-size:12.5px;margin:0 0 15px}
+  .cmdrow{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:7px;background:var(--code);border:1px solid var(--line)}
   .cmdrow .pr{color:var(--green);flex-shrink:0}
-  .cmdrow code{flex:1;min-width:0;overflow-wrap:anywhere;color:var(--text)}
-  .cmdrow code .c1{color:var(--cyan)}.cmdrow code .c2{color:var(--amber)}.cmdrow code .c3{color:var(--mag)}
-  .cp{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:5px;font-family:var(--mono);font-size:12px;font-weight:700;
-    background:rgba(255,180,84,.12);border:1px solid rgba(255,180,84,.4);color:var(--amber);cursor:pointer;transition:.16s}
-  .cp:hover{background:rgba(255,180,84,.24)}
-  .cp.done{background:rgba(94,240,138,.14);border-color:rgba(94,240,138,.5);color:var(--green)}
-  .notes{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:10px;font-size:13px;color:var(--dim)}
-  .notes li{display:flex;gap:9px}
-  .notes .h{color:var(--faint);flex-shrink:0}
-  .notes .v{color:var(--cyan)}
+  .cmdrow code{flex:1;min-width:0;overflow-wrap:anywhere;font-size:13px}
+  .c1{color:var(--cyan)}.c2{color:var(--amber)}.c3{color:var(--mag)}.c4{color:var(--vio)}
+  .cp{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:6px;font-size:12px;font-weight:700;
+    background:color-mix(in srgb,var(--amber) 14%,transparent);border:1px solid color-mix(in srgb,var(--amber) 45%,transparent);
+    color:var(--amber);cursor:pointer;transition:.15s;font-family:inherit}
+  .cp:hover{background:color-mix(in srgb,var(--amber) 26%,transparent)}
+  .cp.done{background:color-mix(in srgb,var(--green) 16%,transparent);border-color:var(--green);color:var(--green)}
+  .alt-cmds{display:grid;gap:10px;margin-top:16px}
+  .alt{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:7px;background:var(--code);border:1px solid var(--line);font-size:12.5px}
+  .alt .n{color:var(--cyan);flex-shrink:0;font-weight:700}
+  .alt code{color:var(--dim);overflow-wrap:anywhere}
   .flow{padding:22px}
   .flow h3{margin:0 0 16px;font-size:16px;color:var(--amber)}
   .fstep{display:flex;gap:13px}
-  .fnum{flex-shrink:0;width:26px;height:26px;border-radius:5px;display:grid;place-items:center;font-size:12px;font-weight:700;
-    background:rgba(79,214,255,.12);border:1px solid rgba(79,214,255,.35);color:var(--cyan)}
-  .fbody{padding-bottom:14px}
-  .fbody b{display:block;font-size:14px;color:var(--text)}
+  .fnum{flex-shrink:0;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:800;
+    background:color-mix(in srgb,var(--cyan) 15%,transparent);border:1px solid color-mix(in srgb,var(--cyan) 40%,transparent);color:var(--cyan)}
+  .fbody{padding-bottom:13px}
+  .fbody b{display:block;font-size:13.5px}
   .fbody span{font-size:12.5px;color:var(--dim)}
-  .fline{width:2px;height:14px;margin-left:12px;background:linear-gradient(var(--line2),transparent)}
+  .fline{width:2px;height:13px;margin-left:12px;background:linear-gradient(var(--line2),transparent)}
 
-  /* ── 筛选栏 ── */
-  .filters{position:sticky;top:44px;z-index:40;padding:12px 14px;border-radius:8px;margin-bottom:26px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
-    background:linear-gradient(180deg,var(--panel),#080a0f);border:1px solid var(--line2)}
-  .search{flex:1;min-width:190px;display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:6px;background:#07090d;border:1px solid var(--line);transition:.18s}
-  .search:focus-within{border-color:var(--amber);box-shadow:var(--glow-a)}
-  .search .pr{color:var(--green);flex-shrink:0}
-  .search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:13.5px}
+  /* ── 筛选 + 卡片 ── */
+  .filters{position:sticky;top:46px;z-index:40;padding:12px 14px;border-radius:10px;margin-bottom:24px;
+    display:flex;gap:11px;align-items:center;flex-wrap:wrap;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2)}
+  .search{flex:1;min-width:190px;display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:7px;
+    background:var(--code);border:1px solid var(--line)}
+  .search:focus-within{border-color:var(--amber)}
+  .search .pr{color:var(--green)}
+  .search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:inherit;font-size:13px}
   .search input::placeholder{color:var(--faint)}
   .pills{display:flex;gap:7px;flex-wrap:wrap}
-  .pill{padding:8px 13px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--dim);transition:.16s;font-family:var(--mono);display:inline-flex;align-items:center;gap:7px}
+  .pill{padding:8px 12px;border-radius:7px;font-size:12.5px;cursor:pointer;border:1px solid var(--line);
+    background:var(--code);color:var(--dim);transition:.15s;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
   .pill:hover{color:var(--text);border-color:var(--line2)}
   .pill .d{width:7px;height:7px;border-radius:50%}
   .pill .ct{color:var(--faint)}
-  .pill.active{color:#0b0d12;background:var(--amber);border-color:var(--amber);box-shadow:var(--glow-a);font-weight:700}
-  .pill.active .ct{color:#3a2a0c}
+  .pill.active{color:#14171f;background:var(--amber);border-color:var(--amber);font-weight:800}
+  :root[data-theme="light"] .pill.active{color:#fff}
+  .pill.active .ct{color:rgba(0,0,0,.5)}
 
-  /* ── 技能卡片（终端窗口） ── */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px}
-  .card{position:relative;display:flex;flex-direction:column;transition:transform .25s,border-color .25s,box-shadow .25s}
-  .card:hover{transform:translateY(-4px);border-color:var(--c);box-shadow:0 24px 50px -30px #000,0 0 0 1px var(--c),0 0 26px -6px var(--cglow)}
-  .card .win-bar .tc-cat{margin-left:auto;color:var(--c);font-size:11.5px}
-  .card .win-bar .tc-dots i{background:var(--c)}
-  .card .win-title b{color:var(--text)}
-  .cbody{padding:16px 18px 18px;display:flex;flex-direction:column;flex:1}
-  .cico{font-size:22px;margin-bottom:10px;filter:saturate(.9)}
-  .cdesc{color:var(--dim);font-size:13px;line-height:1.7;margin:0 0 14px;flex:1}
-  .ctags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-  .ctags span{font-size:11px;color:var(--faint);background:rgba(255,255,255,.02);border:1px solid var(--line);padding:3px 8px;border-radius:4px}
-  .ccmd{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:6px;background:#07090d;border:1px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+  .card{display:flex;flex-direction:column;transition:transform .25s,border-color .25s,box-shadow .25s}
+  .card:hover{transform:translateY(-4px);border-color:var(--c);box-shadow:0 26px 54px -30px var(--shadow),0 0 0 1px var(--c)}
+  .card .wtag{color:var(--c)}
+  .cbody{padding:16px 17px 17px;display:flex;flex-direction:column;flex:1}
+  .chead{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+  .ctile{flex-shrink:0;width:42px;height:42px;border-radius:10px;display:grid;place-items:center;
+    font-size:21px;line-height:1;font-style:normal;
+    background:color-mix(in srgb,var(--c) 13%,transparent);border:1px solid color-mix(in srgb,var(--c) 42%,transparent)}
+  .chead-text{min-width:0}
+  .chead-text h3{margin:0 0 5px;font-size:14.5px;font-weight:700;overflow-wrap:anywhere;line-height:1.35}
+  .cchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--c);
+    border:1px solid color-mix(in srgb,var(--c) 38%,transparent);padding:2px 8px;border-radius:99px;
+    background:color-mix(in srgb,var(--c) 10%,transparent)}
+  .cdesc{color:var(--dim);font-size:12.8px;line-height:1.72;margin:0 0 12px;flex:1}
+  .ctags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .ctags span{font-size:11px;color:var(--faint);border:1px solid var(--line);padding:3px 8px;border-radius:6px;background:var(--code)}
+  .ccmd{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:7px;background:var(--code);border:1px solid var(--line)}
   .ccmd .pr{color:var(--green);flex-shrink:0}
-  .ccmd code{flex:1;min-width:0;font-size:11.5px;color:#aab6cc;overflow-wrap:anywhere;line-height:1.55;scrollbar-width:none}
-  .ccmd code::-webkit-scrollbar{display:none}
-  .ccmd code .c1{color:var(--cyan)}.ccmd code .c2{color:var(--amber)}.ccmd code .c3{color:var(--mag)}
-  .mini{flex-shrink:0;width:28px;height:28px;border-radius:5px;display:grid;place-items:center;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--dim);transition:.15s}
+  .ccmd code{flex:1;min-width:0;font-size:11px;color:var(--dim);overflow-wrap:anywhere;line-height:1.6}
+  .mini{flex-shrink:0;width:28px;height:28px;border-radius:6px;display:grid;place-items:center;cursor:pointer;
+    background:var(--panel2);border:1px solid var(--line);color:var(--dim);transition:.15s}
   .mini:hover{color:var(--amber);border-color:var(--amber)}
   .mini.done{color:var(--green);border-color:var(--green)}
   .empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--faint)}
-  .empty .big{font-size:34px;margin-bottom:8px;color:var(--amber)}
+  .empty .big{font-size:34px;color:var(--amber);margin-bottom:8px}
+
+  /* ── 目录结构 ── */
+  .anat{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .tree-box{padding:20px;font-size:12.8px;line-height:1.85;background:var(--code)}
+  .tree-box .t-dir{color:var(--cyan)}.tree-box .t-file{color:var(--dim)}.tree-box .t-cmt{color:var(--faint)}
+  .folders{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .folder{padding:14px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+  .folder b{display:block;color:var(--amber);font-size:13px;margin-bottom:4px}
+  .folder span{color:var(--dim);font-size:12px;line-height:1.6}
+
+  /* ── CLI 速查 ── */
+  .cli-table{border:1px solid var(--line2);border-radius:10px;overflow:hidden}
+  .cli-row{display:grid;grid-template-columns:260px 1fr;gap:16px;padding:14px 18px;border-bottom:1px solid var(--line);align-items:center}
+  .cli-row:last-child{border-bottom:none}
+  .cli-row:nth-child(odd){background:var(--panel)}
+  .cli-row code{font-size:12.5px;color:var(--text);overflow-wrap:anywhere}
+  .cli-row span{font-size:12.8px;color:var(--dim)}
+  .cli-head{background:var(--bar)!important;color:var(--faint);font-size:12px}
+
+  /* ── 实战演示 ── */
+  .session{padding:22px;font-size:12.8px;line-height:1.9;background:var(--code)}
+  .session .pr{color:var(--green)}
+  .session .out{color:var(--dim)}
+  .session .hl{color:var(--amber)}
+  .session .ok{color:var(--green)}
+  .session .src{color:var(--cyan)}
+
+  /* ── FAQ ── */
+  .faq{display:grid;gap:12px}
+  .faq-item{border-radius:9px;overflow:hidden;border:1px solid var(--line)}
+  .faq-q{display:flex;gap:10px;align-items:center;padding:14px 17px;cursor:pointer;background:var(--panel);font-size:13.5px;font-weight:700}
+  .faq-q .pr{color:var(--green)}
+  .faq-q .arrow{margin-left:auto;color:var(--faint);transition:.2s}
+  .faq-item.open .arrow{transform:rotate(90deg);color:var(--amber)}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .faq-a-inner{padding:0 17px 15px 17px;color:var(--dim);font-size:13px;line-height:1.8}
+  .faq-item.open .faq-q{border-bottom:1px solid var(--line)}
 
   /* ── 关于 ── */
   .about{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
   .acard{padding:22px}
-  .acard .ai{color:var(--cyan);font-size:20px;margin-bottom:12px;text-shadow:var(--glow-c)}
-  .acard h4{margin:0 0 7px;font-size:15px;color:var(--amber)}
-  .acard p{color:var(--dim);font-size:13px;line-height:1.7;margin:0}
+  .acard .ai{color:var(--cyan);font-size:13px;margin-bottom:11px;text-shadow:var(--glow-c)}
+  .acard h4{margin:0 0 7px;font-size:14.5px;color:var(--amber)}
+  .acard p{color:var(--dim);font-size:12.8px;line-height:1.75;margin:0}
 
-  footer{border-top:1px solid var(--line);margin-top:36px}
-  .foot{max-width:1140px;margin:0 auto;padding:22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--faint)}
-  .foot .fl{color:var(--amber);font-weight:700;text-shadow:var(--glow-a)}
-  .foot .fr{margin-left:auto;display:flex;gap:16px}
+  footer{border-top:1px solid var(--line);margin-top:30px}
+  .foot{max-width:1160px;margin:0 auto;padding:24px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--faint)}
+  .foot .fl{color:var(--amber);font-weight:800;text-shadow:var(--glow-a)}
+  .foot .fr{margin-left:auto;display:flex;gap:15px}
   .foot a{color:var(--dim)}.foot a:hover{color:var(--amber)}
 
-  .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
   .reveal.in{opacity:1;transform:none}
-  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);z-index:90;padding:11px 18px;border-radius:6px;
-    background:var(--amber);color:#1a1206;font-weight:700;font-size:13px;box-shadow:var(--glow-a);opacity:0;pointer-events:none;transition:.3s;font-family:var(--mono)}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);z-index:95;padding:11px 18px;border-radius:7px;
+    background:var(--amber);color:#171206;font-weight:700;font-size:13px;box-shadow:var(--glow-a);
+    opacity:0;pointer-events:none;transition:.3s;font-family:inherit}
   .toast.show{opacity:1;transform:translate(-50%,0)}
 
-  @media (max-width:900px){
+  @media (max-width:920px){
     .hero{grid-template-columns:1fr;padding-top:44px}
-    .inst{grid-template-columns:1fr}
+    .inst-grid,.anat{grid-template-columns:1fr}
     .about{grid-template-columns:1fr}
-    .filters{top:40px}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .filters{top:42px}
+    .cli-row{grid-template-columns:1fr;gap:5px}
+    .folders{grid-template-columns:1fr}
   }
   @media (max-width:560px){
     .grid{grid-template-columns:1fr}
-    .sb-item.hide{display:none}
+    .sb-meta,.sb-link{display:none}
   }
   @media (prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important}
@@ -219,24 +335,24 @@
 </style>
 </head>
 <body>
-<div class="crt-scan" aria-hidden="true"></div>
-<div class="crt-vig" aria-hidden="true"></div>
+<div class="crt" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
 
 <!-- 状态栏 -->
 <div class="statusbar">
-  <div class="in">
-    <div class="sb-left">
-      <span class="sb-logo">◈ z-skills</span>
-      <span class="sb-sep">│</span>
-      <span class="sb-item"><b>17</b> skills</span>
-      <span class="sb-sep hide">│</span>
-      <span class="sb-item hide"><b>5</b> categories</span>
-    </div>
+  <div class="sb-in">
+    <span class="sb-logo">◈ z-skills</span>
+    <span class="sb-sep">│</span>
+    <span class="sb-meta"><b>17</b> skills</span>
+    <span class="sb-sep">│</span>
+    <span class="sb-meta"><b>5</b> cats</span>
     <div class="sb-right">
-      <span class="sb-live"><i></i>ready</span>
-      <a href="#skills">skills</a>
-      <a href="#install">install</a>
-      <a href="https://github.com/tjxj/z-skills" target="_blank" rel="noopener">tjxj ↗</a>
+      <a class="sb-link" href="#demo">演示</a>
+      <a class="sb-link" href="#install">安装</a>
+      <a class="sb-link" href="#skills">技能</a>
+      <a class="sb-link" href="#faq">问答</a>
+      <button class="theme-btn" id="themeBtn" title="切换日/夜模式"><span class="ti" id="themeIcon">☀</span><span id="themeLabel">白天</span></button>
+      <a class="sb-gh" href="https://github.com/tjxj/z-skills" target="_blank" rel="noopener">★ GitHub</a>
     </div>
   </div>
 </div>
@@ -246,71 +362,83 @@
   <!-- HERO -->
   <header class="hero">
     <div>
-      <div class="eyebrow"><span class="cmt">#</span> z-skills — reusable agent skills</div>
-      <h1>把重复工作流<br><span class="ln2">沉淀成 <span class="kw">稳定能力</span></span></h1>
-      <p class="sub"><span class="p">&gt;</span> 一套面向中文创作与知识管理的本地 Agent Skills：网页素材采集、视频下载、文档解析、邮件表格、Markdown 转 Word/PDF、证据型问答、手写幻灯片、四格漫画。每条技能附一行 npx 安装命令。</p>
+      <div class="eyebrow"># tjxj/z-skills — reusable agent skills</div>
+      <h1>把重复工作流<br>沉淀成<span class="a">稳定</span><span class="c">能力</span></h1>
+      <p class="sub">一组面向中文创作与知识管理的本地 Agent Skills：网页素材采集、视频下载、文档解析、邮件表格、Markdown 转 Word/PDF、证据型问答、手写幻灯片、四格漫画。每条技能附一行 npx 安装命令，本地运行、按需触发。</p>
       <div class="cta">
-        <a class="btn primary" href="#skills">$ ./browse --all →</a>
-        <button class="btn term" id="heroCopy" data-cmd="npx skills add tjxj/z-skills --skill z-grounded-source-qa">⧉ npx skills add …</button>
+        <a class="btn primary" href="#skills">$ ls skills/ →</a>
+        <a class="btn ghost" href="#demo">⌨ 试试交互终端</a>
       </div>
       <div class="stats">
-        <div><div class="n" data-count="17">0</div><div class="l">skills</div></div>
-        <div><div class="n" data-count="5">0</div><div class="l">categories</div></div>
-        <div><div class="n" data-count="528">0</div><div class="l">github ★</div></div>
+        <div class="stat"><div class="n" data-count="17">0</div><div class="l">skills</div></div>
+        <div class="stat"><div class="n" data-count="5">0</div><div class="l">分类</div></div>
+        <div class="stat"><div class="n" data-count="528">0</div><div class="l">github ★</div></div>
+        <div class="stat"><div class="n">100%</div><div class="l">本地运行</div></div>
       </div>
     </div>
 
+    <!-- 脚本演示终端 -->
     <div class="win">
-      <div class="win-bar">
-        <span class="wdots"><i></i><i></i><i></i></span>
-        <span class="wtitle">z-skills — <b>zsh</b> — 80×24</span>
-        <span class="wtag">~/skills</span>
-      </div>
-      <div class="boot">
-        <div><span class="pr">$</span> z-skills <span class="ar">--list</span></div>
-        <div><span class="dm">⠿</span> scan skills manifest <span class="dm">.........</span> <span class="ok">ok</span></div>
-        <div><span class="dm">⠿</span> <span class="n" id="bootCount">0</span> skills / 5 categories <span class="dm">...</span> <span class="ok">ok</span></div>
-        <div><span class="dm">⠿</span> resolve install cmds <span class="dm">.......</span> <span class="ok">ok</span></div>
-        <div><span class="pr">▸</span> ready — pick a category or <span class="cy">search</span> below<span class="cursor"></span></div>
-      </div>
+      <div class="win-bar"><span class="wdots"><i></i><i></i><i></i></span><span class="wtitle">z-skills — <b>zsh</b></span><span class="wtag">demo</span></div>
+      <div class="demo-body" id="demoBody"></div>
     </div>
   </header>
+
+  <!-- 交互终端 -->
+  <section id="demo">
+    <div class="shead">
+      <div class="stag">// ./try.sh</div>
+      <h2>交互终端：亲手敲几条命令</h2>
+      <p>这是一个内置的模拟 shell，支持 <b style="color:var(--amber)">ls / tree / cat / install / help / theme / clear</b> 等命令。点下面快捷词，或直接在窗口里输入。</p>
+    </div>
+    <div class="win" id="shell">
+      <div class="win-bar"><span class="wdots"><i></i><i></i><i></i></span><span class="wtitle">agent@z-skills: <b>~/z-skills</b></span><span class="wtag">interactive</span></div>
+      <div class="shell-screen" id="shellScreen"></div>
+      <div class="shell-input">
+        <span class="pr">$</span><input id="shellInput" spellcheck="false" autocomplete="off" aria-label="终端命令输入">
+      </div>
+      <div class="chips">
+        <span class="chip" data-run="help">help</span>
+        <span class="chip" data-run="ls">ls</span>
+        <span class="chip" data-run="tree">tree -L 1</span>
+        <span class="chip" data-run="cat z-web-pack/SKILL.md">cat z-web-pack/SKILL.md</span>
+        <span class="chip" data-run="install z-md-to-pdf">install z-md-to-pdf</span>
+        <span class="chip" data-run="neofetch">neofetch</span>
+      </div>
+    </div>
+  </section>
 
   <!-- 安装 -->
   <section id="install">
     <div class="shead">
       <div class="stag">// install.sh</div>
-      <h2><span class="pr">&gt;</span> 一行命令，安装任意技能</h2>
-      <p>所有技能托管在同一个仓库，用 <span style="color:var(--cyan)">npx skills</span> 按需安装单个；安装后 Agent 会在新会话根据 SKILL.md 的名称与描述自动匹配触发。</p>
+      <h2>一行命令，安装任意技能</h2>
+      <p>所有技能托管在同一仓库，用 <b style="color:var(--cyan)">npx skills</b> 按需安装单个；新会话里 Agent 根据 SKILL.md 的 name / description 自动匹配触发词。</p>
     </div>
-    <div class="inst">
-      <div class="win">
-        <div class="win-bar"><span class="wdots"><i></i><i></i><i></i></span><span class="wtitle">install — <b>zsh</b></span></div>
-        <div class="inst-body">
-          <h3>$ npx skills add …</h3>
-          <p class="hint">把 <span class="v">&lt;skill&gt;</span> 换成下方任意技能名。</p>
-          <div class="cmdrow">
-            <span class="pr">$</span>
-            <code id="instCmd"><span class="c1">npx</span> skills <span class="c1">add</span> <span class="c2">tjxj/z-skills</span> <span class="c3">--skill</span> z-grounded-source-qa</code>
-            <button class="cp" data-copy="npx skills add tjxj/z-skills --skill z-grounded-source-qa">⧉ copy</button>
-          </div>
-          <ul class="notes">
-            <li><span class="h">#</span><span>安装位置由 Skills 环境决定（如 <span class="v">.agent/skills/</span>），无需手动配置。</span></li>
-            <li><span class="h">#</span><span>一次装全部：<span class="v">cp -R z-* /path/to/.agent/skills/</span></span></li>
-            <li><span class="h">#</span><span>触发靠每个 SKILL.md 的 <span class="v">name</span> 与 <span class="v">description</span>，触发词越准命中越稳。</span></li>
-          </ul>
+    <div class="inst-grid">
+      <div class="win ib">
+        <h3>$ npx skills add …</h3>
+        <p class="hint">把 <span class="c2">&lt;skill&gt;</span> 换成下方任意技能名</p>
+        <div class="cmdrow">
+          <span class="pr">$</span>
+          <code><span class="c1">npx</span> skills <span class="c1">add</span> <span class="c2">tjxj/z-skills</span> <span class="c3">--skill</span> z-grounded-source-qa</code>
+          <button class="cp" data-copy="npx skills add tjxj/z-skills --skill z-grounded-source-qa">⧉ 复制</button>
+        </div>
+        <div class="alt-cmds">
+          <div class="alt"><span class="n">01</span><code><span class="c1">git clone</span> https://github.com/tjxj/z-skills —— 拉取全部源码</code></div>
+          <div class="alt"><span class="n">02</span><code><span class="c1">cp -R</span> z-* /path/to/.agent/skills/ —— 一次性安装全部技能</code></div>
+          <div class="alt"><span class="n">03</span><code><span class="c1">python3</span> &lt;skill&gt;/scripts/xxx.py —— 不安装，直接运行脚本</code></div>
         </div>
       </div>
-      <div class="win">
-        <div class="win-bar"><span class="wdots"><i></i><i></i><i></i></span><span class="wtitle">workflow</span></div>
-        <div class="flow">
-          <h3>使用流程</h3>
-          <div class="fstep"><div class="fnum">1</div><div class="fbody"><b>安装技能</b><span>用 npx skills 装到本地 skills 目录。</span></div></div>
-          <div class="fline"></div>
-          <div class="fstep"><div class="fnum">2</div><div class="fbody"><b>开启新会话</b><span>Agent 自动读取 SKILL.md 注册触发词。</span></div></div>
-          <div class="fline"></div>
-          <div class="fstep"><div class="fnum">3</div><div class="fbody"><b>自然语言触发</b><span>说出触发词，技能接管工作流并产出。</span></div></div>
-        </div>
+      <div class="win flow">
+        <h3>使用流程</h3>
+        <div class="fstep"><div class="fnum">1</div><div class="fbody"><b>安装</b><span>npx skills 装到本地 skills 目录</span></div></div>
+        <div class="fline"></div>
+        <div class="fstep"><div class="fnum">2</div><div class="fbody"><b>新会话</b><span>Agent 读取 SKILL.md 注册触发词</span></div></div>
+        <div class="fline"></div>
+        <div class="fstep"><div class="fnum">3</div><div class="fbody"><b>自然语言触发</b><span>说触发词，技能接管工作流</span></div></div>
+        <div class="fline"></div>
+        <div class="fstep"><div class="fnum">4</div><div class="fbody"><b>验证产物</b><span>查看或运行校验生成结果</span></div></div>
       </div>
     </div>
   </section>
@@ -319,30 +447,131 @@
   <section id="skills">
     <div class="shead">
       <div class="stag">// ls ~/skills</div>
-      <h2><span class="pr">&gt;</span> 全部技能</h2>
-      <p>按分类浏览，或用搜索框按名称 / 用途 / 触发词过滤。每张卡片可一键复制该技能的 npx 安装命令。</p>
+      <h2>全部技能</h2>
+      <p>按分类浏览，或按名称 / 用途 / 触发词搜索。每张卡片右下角可一键复制 npx 安装命令。</p>
     </div>
     <div class="filters">
       <label class="search">
         <span class="pr">&gt;</span>
-        <input id="q" type="text" placeholder="grep skills / 用途 / 触发词…" autocomplete="off">
+        <input id="q" type="text" placeholder="grep 技能 / 用途 / 触发词…" autocomplete="off">
       </label>
       <div class="pills" id="pills"></div>
     </div>
     <div class="grid" id="grid"></div>
   </section>
 
+  <!-- 目录结构 -->
+  <section id="anatomy">
+    <div class="shead">
+      <div class="stag">// tree z-skills</div>
+      <h2>仓库结构与技能解剖</h2>
+      <p>每个技能都是一个自包含目录；核心原则：触发词清晰、流程可执行、输出可验证。</p>
+    </div>
+    <div class="anat">
+      <div class="win tree-box">
+<span class="t-dir">z-skills/</span>
+├── <span class="t-file">README.md</span>          <span class="t-cmt"># 总览与边界说明</span>
+├── <span class="t-dir">z-web-pack/</span>
+├── <span class="t-dir">z-video-downloader/</span>
+├── <span class="t-dir">z-grounded-source-qa/</span>
+│   ├── <span class="t-file">SKILL.md</span>      <span class="t-cmt"># 触发词/流程/输出规范</span>
+│   ├── <span class="t-dir">scripts/</span>       <span class="t-cmt"># 可执行脚本</span>
+│   ├── <span class="t-dir">references/</span>    <span class="t-cmt"># 方法论与参考资料</span>
+│   ├── <span class="t-dir">tests/</span>         <span class="t-cmt"># 测试用例</span>
+│   └── <span class="t-dir">evals/</span>         <span class="t-cmt"># 评估样例</span>
+├── <span class="t-dir">z-md-to-pdf/</span>
+├── <span class="t-dir">z-sci-viz-lab/</span>
+└── <span class="t-cmt">… 共 17 个技能目录</span>
+      </div>
+      <div class="folders">
+        <div class="folder"><b>SKILL.md</b><span>技能入口：name + description 决定何时触发</span></div>
+        <div class="folder"><b>scripts/</b><span>可复用脚本，优先调用而非手工操作</span></div>
+        <div class="folder"><b>assets/</b><span>参考图、模板等固定素材</span></div>
+        <div class="folder"><b>references/</b><span>方法论、踩坑记录、背景文档</span></div>
+        <div class="folder"><b>templates/</b><span>网页、文档等输出模板</span></div>
+        <div class="folder"><b>examples/</b><span>输入输出示例，降低理解成本</span></div>
+        <div class="folder"><b>evals/</b><span>评估用例，检验技能是否达标</span></div>
+        <div class="folder"><b>tests/</b><span>脚本级测试，保证流程可复现</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLI 速查 -->
+  <section id="cli">
+    <div class="shead">
+      <div class="stag">// man z-skills</div>
+      <h2>命令速查表</h2>
+    </div>
+    <div class="cli-table">
+      <div class="cli-row cli-head"><code>command</code><span>description</span></div>
+      <div class="cli-row"><code>npx skills add tjxj/z-skills --skill &lt;name&gt;</code><span>安装单个技能（推荐）</span></div>
+      <div class="cli-row"><code>git clone https://github.com/tjxj/z-skills.git</code><span>克隆整个仓库</span></div>
+      <div class="cli-row"><code>cp -R z-* /path/to/.agent/skills/</code><span>手动批量安装全部技能</span></div>
+      <div class="cli-row"><code>cp -R z-&lt;name&gt; /path/to/.agent/skills/</code><span>手动安装单个技能</span></div>
+      <div class="cli-row"><code>python3 z-&lt;name&gt;/scripts/&lt;file&gt;.py --help</code><span>直接查看脚本参数并运行</span></div>
+      <div class="cli-row"><code>grep -l "name:" z-*/SKILL.md</code><span>查看每个技能的声明</span></div>
+    </div>
+  </section>
+
+  <!-- 实战演示 -->
+  <section id="session">
+    <div class="shead">
+      <div class="stag">// examples/grounded-qa.session</div>
+      <h2>实战会话长什么样</h2>
+      <p>以 <b style="color:var(--amber)">z-grounded-source-qa</b> 为例：多表达式检索 → 保留出处 → 区分证据与推断。</p>
+    </div>
+    <div class="win session">
+<div><span class="pr">$</span> npx skills add tjxj/z-skills <span class="hl">--skill</span> z-grounded-source-qa</div>
+<div class="ok">✔ installed → ~/.agent/skills/z-grounded-source-qa</div>
+<div>&nbsp;</div>
+<div><span class="pr">&gt;</span> 只根据「制度」这个文件夹回答：高铁二等座能报销吗？</div>
+<div class="out">[检索] multi-expression search … <span class="ok">3 hits</span></div>
+<div class="out">[证据] <span class="src">《差旅管理办法》§4.2</span>：「高铁按二等座凭据实报实销」</div>
+<div class="out">[推断] 行程与公务相关时适用本条</div>
+<div><span class="hl">结论</span>：可以报销，需留存车票与审批凭证。<span class="src">[出处: 差旅管理办法 §4.2]</span></div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="shead">
+      <div class="stag">// faq --open</div>
+      <h2>常见问题</h2>
+    </div>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q"><span class="pr">$</span> 必须联网才能用吗？<span class="arrow">▸</span></div>
+        <div class="faq-a"><div class="faq-a-inner">安装时需要网络（npx / git clone）。安装后技能在本地运行，读本地文件、跑本地脚本，不依赖云端服务。</div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span class="pr">$</span> 支持哪些 Agent 环境？<span class="arrow">▸</span></div>
+        <div class="faq-a"><div class="faq-a-inner">任何读取 SKILL.md 的环境：Claude Code、Codex，或手动放到本地 .agent/skills/ 目录。匹配依据是每个 SKILL.md 的 name 与 description。</div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span class="pr">$</span> 技能会自动触发吗？<span class="arrow">▸</span></div>
+        <div class="faq-a"><div class="faq-a-inner">新会话启动时自动注册；当你的请求命中描述里的触发场景（如「下载B站」「Markdown转PDF」「只根据资料回答」）时，技能自动接管，无需手动调用。</div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span class="pr">$</span> 能自己修改或二次开发吗？<span class="arrow">▸</span></div>
+        <div class="faq-a"><div class="faq-a-inner">可以，fork 后直接改 SKILL.md 与脚本。建议保持触发词清晰、流程可执行、输出可验证——这是仓库的维护原则。</div></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span class="pr">$</span> 遇到付费墙 / 验证码 / 视频号怎么办？<span class="arrow">▸</span></div>
+        <div class="faq-a"><div class="faq-a-inner">采集遇付费墙时会保留受限说明并补公开来源；视频号分享链接由 z-video-downloader 通过在线解析自动获取地址，支持断点续传与字幕封面。</div></div>
+      </div>
+    </div>
+  </section>
+
   <!-- 关于 -->
   <section id="about">
     <div class="shead">
       <div class="stag">// why</div>
-      <h2><span class="pr">&gt;</span> 为什么是 Skills</h2>
-      <p>把可复用的工作流沉淀成稳定能力，而不是每次临时提示。</p>
+      <h2>为什么是 Skills</h2>
     </div>
     <div class="about">
-      <div class="win acard reveal"><div class="ai">◆ 触发词清晰</div><p>每个 SKILL.md 用明确的 name 与 description 声明触发场景，命中即接管，减少反复解释。</p></div>
-      <div class="win acard reveal"><div class="ai">◆ 流程可执行</div><p>能脚本化的都沉淀为 scripts/，优先调用脚本，避免手工重复与不一致。</p></div>
-      <div class="win acard reveal"><div class="ai">◆ 输出可验证</div><p>生成结果尽量做一次实际查看或运行校验，带退出码的验证脚本才算完成。</p></div>
+      <div class="win acard reveal"><div class="ai">◆ 01</div><h4>触发词清晰</h4><p>明确的 name 与 description 声明触发场景，命中即接管，减少反复解释。</p></div>
+      <div class="win acard reveal"><div class="ai">◆ 02</div><h4>流程可执行</h4><p>能脚本化的都沉淀为 scripts/，优先调用脚本，避免手工重复与不一致。</p></div>
+      <div class="win acard reveal"><div class="ai">◆ 03</div><h4>输出可验证</h4><p>生成结果做一次实际查看或运行校验，带退出码的验证脚本才算完成。</p></div>
     </div>
   </section>
 
@@ -352,21 +581,23 @@
   <div class="foot">
     <span class="fl">◈ z-skills</span>
     <span>local reusable agent skills · 中文创作与知识管理</span>
-    <div class="fr"><a href="https://github.com/tjxj/z-skills" target="_blank" rel="noopener">github ↗</a><a href="#skills">skills</a></div>
+    <div class="fr"><a href="https://github.com/tjxj/z-skills" target="_blank" rel="noopener">github ↗</a><a href="#skills">skills</a><a href="#install">top ↑</a></div>
   </div>
 </footer>
 
-<div class="toast" id="toast">已复制</div>
+<div class="toast" id="toast"></div>
 
 <script>
 (function(){
   "use strict";
+
+  /* ── 数据 ── */
   var CATS=[
-    {id:'collect',name:'素材采集与下载',color:'#4fd6ff',ic:'🛰'},
-    {id:'office', name:'邮件与表格',    color:'#ff7bd5',ic:'▤'},
-    {id:'convert',name:'文档转换',      color:'#5ef08a',ic:'⇄'},
-    {id:'qa',     name:'证据问答',      color:'#ffb454',ic:'⌕'},
-    {id:'create', name:'内容创作',      color:'#b78bff',ic:'✦'}
+    {id:'collect',name:'素材采集下载',color:'#54d8ff'},
+    {id:'office', name:'邮件表格',    color:'#ff7fd6'},
+    {id:'convert',name:'文档转换',    color:'#63ec92'},
+    {id:'qa',     name:'证据问答',    color:'#ffb454'},
+    {id:'create', name:'内容创作',    color:'#bb93ff'}
   ];
   var catById={};CATS.forEach(function(c){catById[c.id]=c;});
   var SKILLS=[
@@ -379,82 +610,333 @@
     {name:'z-excel-editor',cat:'office',icon:'📈',desc:'读取、编辑、清洗、格式化 .xlsx/.xlsm/.csv：加列、算公式、清洗脏数据、生成图表与表格。',tags:['修改xlsx','清洗csv','补公式']},
     {name:'z-md-to-word',cat:'convert',icon:'📝',desc:'把本地 Markdown 文章转成 .docx/.doc，自动嵌入图片、修复列表、跳过空占位符，生成后做打开检查。',tags:['Markdown转Word','导出doc','md转docx']},
     {name:'z-md-to-pdf',cat:'convert',icon:'📕',desc:'把 Markdown 排成学术、书籍、现代报告三种中文 PDF，支持指定风格、批量生成与上游 XeLaTeX 项目复编。',tags:['Markdown转PDF','学术风','书籍风','报告风']},
-    {name:'z-docx-format-brush',cat:'convert',icon:'🖌',desc:'从模板 docx 提取格式指纹（字体/字号/行距/缩进/表格边框/封面/分页）并统一刷到目标文档，一键修复 pandoc/模型产出的格式混乱。',tags:['格式刷','格式统一','docx格式修复','公文格式']},
+    {name:'z-docx-format-brush',cat:'convert',icon:'🖌️',desc:'从模板 docx 提取格式指纹（字体/字号/行距/缩进/表格边框/封面/分页）并统一刷到目标文档，修复 pandoc/模型产出的格式混乱。',tags:['格式刷','格式统一','docx格式修复','公文格式']},
     {name:'z-grounded-source-qa',cat:'qa',icon:'🔍',desc:'对本地 Markdown/TXT 资料做多表达式检索与证据型问答，保留出处、区分证据与推断，绝不编造。',tags:['只根据资料回答','给出出处','按原文核对']},
     {name:'z-expense-policy-qa',cat:'qa',icon:'🧾',desc:'把报销与差旅制度变成可核对金额、材料、时限与条款出处的问答助手，内置虚构演示制度。',tags:['报销制度','差旅标准','能不能报']},
-    {name:'z-liang-wenfeng-grounded-voice',cat:'qa',icon:'🎙',desc:'基于梁文锋交流会材料做第一人称模拟回答、观点推演与来源核对，边界清晰、有据可查。',tags:['你是梁文锋','记者追问','按原文核对']},
+    {name:'z-liang-wenfeng-grounded-voice',cat:'qa',icon:'🎙️',desc:'基于梁文锋交流会材料做第一人称模拟回答、观点推演与来源核对，边界清晰、有据可查。',tags:['你是梁文锋','记者追问','按原文核对']},
     {name:'z-xkcd-panda-comic',cat:'create',icon:'🐼',desc:'把文章、主题或观点改写成黑白手绘四格熊猫梗图，xkcd 式冷幽默节奏，适合公众号 / Obsidian 配图。',tags:['四格漫画','金馆长熊猫','熊猫梗图']},
-    {name:'z-wanghong-handwritten-ppt',cat:'create',icon:'✍',desc:'把文章或讲稿做成王虹学术手写风 16:9 HTML 幻灯片，逐页导出 PNG，并默认生成可逐条播放动画的时间轴版。',tags:['王虹PPT','Notability手写','手写网页PPT']},
-    {name:'z-wanghong-handwritten-video',cat:'create',icon:'🎞',desc:'驱动手写 PPT 的 HTML DOM 输出 16:9 无音轨动画 MP4，锁定原字形、字号、留白与图表。',tags:['手写动画','手写PPT转MP4']},
+    {name:'z-wanghong-handwritten-ppt',cat:'create',icon:'✍️',desc:'把文章或讲稿做成王虹学术手写风 16:9 HTML 幻灯片，逐页导出 PNG，并默认生成可逐条播放动画的时间轴版。',tags:['王虹PPT','Notability手写','手写网页PPT']},
+    {name:'z-wanghong-handwritten-video',cat:'create',icon:'🎞️',desc:'驱动手写 PPT 的 HTML DOM 输出 16:9 无音轨动画 MP4，锁定原字形、字号、留白与图表。',tags:['手写动画','手写PPT转MP4']},
     {name:'z-sci-viz-lab',cat:'create',icon:'🔬',desc:'把数学/科学概念变成手机电脑都能访问的单页互动科普实验：参数滑杆、实时反馈、Three.js/Canvas，单文件构建发布。',tags:['可视化科普','互动实验','科学演示']}
   ];
   var REPO='tjxj/z-skills';
+  var PWD='/home/agent/z-skills';
   function cmd(n){return 'npx skills add '+REPO+' --skill '+n;}
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function rgb(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ── 主题切换 ── */
+  var root=document.documentElement;
+  (function initTheme(){
+    var saved=null;
+    try{saved=localStorage.getItem('zsk-theme');}catch(e){}
+    var t=saved||(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');
+    root.setAttribute('data-theme',t);
+  })();
+  function syncThemeBtn(){
+    var dark=root.getAttribute('data-theme')==='dark';
+    document.getElementById('themeIcon').textContent=dark?'☀':'☾';
+    document.getElementById('themeLabel').textContent=dark?'白天':'夜间';
+    document.getElementById('themeBtn').title=dark?'切换到白天模式':'切换到夜间模式';
+  }
+  function toggleTheme(){
+    var next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('zsk-theme',next);}catch(e){}
+    syncThemeBtn();
+    return next;
+  }
+  document.getElementById('themeBtn').addEventListener('click',toggleTheme);
+  syncThemeBtn();
+
+  /* ── 脚本演示终端（循环场景） ── */
+  var SCENES=[
+    {cmd:'ls -1', lines:function(){
+      return SKILLS.map(function(s){return {t:s.name,c:'dir'};});
+    }},
+    {cmd:'tree -L 1', lines:function(){
+      var l=[];
+      SKILLS.forEach(function(s,i){
+        l.push({t:(i===SKILLS.length-1?'└── ':'├── ')+s.name+'/',c:'dir'});
+      });
+      l.push({t:'',c:''});
+      l.push({t:SKILLS.length+' directories, 1 file (README.md)',c:'cmt'});
+      return l;
+    }},
+    {cmd:'head -n 6 z-md-to-pdf/SKILL.md', lines:function(){
+      var s=findSkill('z-md-to-pdf');
+      return [
+        {t:'---',c:'cmt'},{t:'name: '+s.name,c:'key'},
+        {t:'description: '+s.desc,c:'file'},
+        {t:'---',c:'cmt'},{t:'# '+s.name,c:'dir'},
+        {t:'触发词：'+s.tags.join(' / '),c:'flag'}
+      ];
+    }},
+    {cmd:cmd('z-video-downloader'), lines:function(){
+      return [
+        {t:'⠿ resolving '+REPO+' …',c:'cmt'},
+        {t:'⠿ fetching SKILL.md …',c:'cmt'},
+        {t:'✔ installed · trigger: 「下载视频」「下载B站」',c:'ok'}
+      ];
+    }}
+  ];
+  function findSkill(n){for(var i=0;i<SKILLS.length;i++)if(SKILLS[i].name===n)return SKILLS[i];return null;}
+  var demoBody=document.getElementById('demoBody');
+  function el(cls,html){return '<div><span class="'+cls+'">'+html+'</span></div>';}
+  function runDemo(){
+    if(reduce){
+      // 静态渲染最后一个场景
+      var s=SCENES[SCENES.length-1];
+      demoBody.innerHTML='<div><span class="pr">$</span> <span class="cmd">'+esc(s.cmd)+'</span></div>'+
+        s.lines().map(function(l){return el(l.c,esc(l.t));}).join('');
+      return;
+    }
+    var si=0;
+    function playScene(){
+      var scene=SCENES[si], typed='';
+      demoBody.innerHTML='';
+      var head=document.createElement('div');
+      demoBody.appendChild(head);
+      var ci=0;
+      (function type(){
+        typed=scene.cmd.slice(0,++ci);
+        head.innerHTML='<span class="pr">$</span> <span class="cmd">'+esc(typed)+'</span><span class="dcursor"></span>';
+        if(ci<scene.cmd.length){setTimeout(type,42+Math.random()*40);return;}
+        setTimeout(function(){
+          var lines=scene.lines();
+          lines.forEach(function(l){
+            var d=document.createElement('div');
+            d.className=l.c; d.textContent=l.t;
+            demoBody.appendChild(d);
+          });
+          demoBody.scrollTop=demoBody.scrollHeight;
+          setTimeout(function(){si=(si+1)%SCENES.length;playScene();},2400);
+        },260);
+      })();
+    }
+    playScene();
+  }
+  runDemo();
+
+  /* ── 交互 shell ── */
+  var screen=document.getElementById('shellScreen');
+  var input=document.getElementById('shellInput');
+  var hist=[],hpos=-1;
+  function out(html,cls){
+    var d=document.createElement('div');
+    d.className='shell-line '+(cls||'');
+    d.innerHTML=html;
+    screen.appendChild(d);
+    while(screen.childNodes.length>220)screen.removeChild(screen.firstChild);
+    screen.scrollTop=screen.scrollHeight;
+  }
+  function outText(t,cls){out(esc(t),cls);}
+  function prompt(cmd){out('<span class="pr">$</span> '+esc(cmd),'l-dim');}
+
+  var HELP=[
+    ['ls','列出技能目录'],['tree','目录树'],['cat <skill>/SKILL.md','查看技能声明'],
+    ['skills','技能编号清单'],['install <skill>','模拟安装'],['theme','切换日/夜模式'],
+    ['neofetch','系统信息'],['whoami / pwd / date','基础命令'],['clear','清屏'],['help','本帮助']
+  ];
+  function skillPath(p){
+    // 支持 z-xxx/SKILL.md、./z-xxx/SKILL.md
+    var m=p.match(/(z-[a-z0-9-]+)(\/SKILL\.md)?/i);
+    return m?findSkill(m[1]):null;
+  }
+  function run(raw){
+    prompt(raw);
+    var parts=raw.trim().split(/\s+/);
+    var c=parts[0],arg=parts.slice(1).filter(function(a){return a!=='-1'&&a!=='-L'&&!/^\d+$/.test(a);});
+    if(!c)return;
+    switch(c){
+      case 'help':
+        out('available commands:','l-amber');
+        HELP.forEach(function(h){out('  '+h[0].padEnd(28)+'<span class="l-faint">'+h[1]+'</span>');});
+        break;
+      case 'ls':
+        var row='';
+        SKILLS.forEach(function(s,i){row+='<span class="dir">'+s.name+'</span>   ';if(i%2===1){out(row);row='';}});
+        if(row)out(row);
+        out('<span class="l-faint">README.md</span>');
+        break;
+      case 'tree':
+        out('~/z-skills','dir');
+        SKILLS.forEach(function(s,i){out((i===SKILLS.length-1?'└── ':'├── ')+'<span class="dir">'+s.name+'/</span>');});
+        out('<span class="l-faint">'+SKILLS.length+' directories · 1 file</span>');
+        break;
+      case 'skills':
+        SKILLS.forEach(function(s,i){out(String(i+1).padStart(2,' ')+'  <span class="dir">'+s.name+'</span>  <span class="l-faint">'+catById[s.cat].name+'</span>');});
+        break;
+      case 'cat': case 'head':
+        if(!arg.length){out('usage: cat &lt;skill&gt;/SKILL.md','l-red');break;}
+        if(arg[0]==='README.md'||arg[0]==='./README.md'){
+          out('# z-skills','l-amber');
+          out('一组可复用的本地 Agent Skills —— 17 skills / 5 categories','l-dim');
+          out('<span class="l-faint">详见 github.com/'+REPO+'</span>');
+          break;
+        }
+        var s=skillPath(arg.join(' '));
+        if(!s){out('cat: '+arg.join(' ')+': no such skill (try `ls`)','l-red');break;}
+        out('---','l-faint');
+        out('name: <span class="l-amber">'+s.name+'</span>');
+        out('description: <span class="l-dim">'+s.desc+'</span>');
+        out('---','l-faint');
+        out('# '+s.name,'l-cyan');
+        out('triggers: '+s.tags.map(esc).join(' / '),'l-mag');
+        break;
+      case 'install':
+        var name=arg[0];
+        var sk=name?findSkill(name.replace(/\/$/,'')):null;
+        if(!sk){out('usage: install &lt;skill&gt;  (see `skills`)','l-red');break;}
+        out('⠿ resolving '+REPO+' …','l-faint');
+        setTimeout(function(){
+          out('⠿ validating SKILL.md …','l-faint');
+          setTimeout(function(){
+            out('✔ <span class="l-ok">installed</span> '+sk.name+' → ~/.agent/skills/','');
+            out('<span class="l-faint">新会话将自动匹配触发词</span>');
+          },260);
+        },260);
+        break;
+      case 'theme':
+        var t=toggleTheme();
+        out('theme → <span class="l-amber">'+t+'</span>');
+        break;
+      case 'whoami': out('agent'); break;
+      case 'pwd': out(PWD); break;
+      case 'date': out(new Date().toString()); break;
+      case 'echo': out(esc(parts.slice(1).join(' '))); break;
+      case 'clear': screen.innerHTML=''; break;
+      case 'neofetch':
+        out('<span class="l-amber">       ___</span>');
+        out('<span class="l-amber">      /\\  \\</span>    <span class="l-cyan">agent</span>@<span class="l-cyan">z-skills</span>');
+        out('<span class="l-amber">     /::\\  \\</span>   ----------------');
+        out('<span class="l-amber">    /:/\\:\\  \\</span>  skills: <span class="l-ok">17</span>');
+        out('<span class="l-amber">   /::\\~\\:\\  \\</span> categories: <span class="l-ok">5</span>');
+        out('<span class="l-amber">  /:/\\:\\ \\:\\__\\</span> shell: zsh');
+        out('<span class="l-amber">  \\/__\\:\\/:/  /</span> local: <span class="l-ok">yes</span>');
+        out('<span class="l-amber">       \\::/  /</span>  theme: '+root.getAttribute('data-theme'));
+        out('<span class="l-amber">        \\/__/</span>');
+        break;
+      case 'about':
+        out('触发词清晰 · 流程可执行 · 输出可验证','l-amber');
+        break;
+      default:
+        out('zsh: command not found: '+esc(c)+'  (try `help`)','l-red');
+    }
+  }
+
+  document.getElementById('shell').addEventListener('click',function(){input.focus();});
+  input.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){
+      var v=input.value;
+      if(v.trim()){hist.push(v);hpos=hist.length;}
+      run(v);
+      input.value='';
+    } else if(e.key==='ArrowUp'){
+      if(!hist.length)return;
+      hpos=Math.max(0,hpos-1); input.value=hist[hpos]; e.preventDefault();
+    } else if(e.key==='ArrowDown'){
+      if(hpos>=hist.length-1){hpos=hist.length;input.value='';}
+      else {hpos++;input.value=hist[hpos];}
+      e.preventDefault();
+    }
+  });
+  document.querySelectorAll('[data-run]').forEach(function(c){
+    c.addEventListener('click',function(){
+      var v=c.getAttribute('data-run');
+      hist.push(v);hpos=hist.length;
+      run(v);
+    });
+  });
+
+  // 欢迎语
+  out('<span class="l-amber">z-skills shell v1.0</span> — 输入 <span class="l-cyan">help</span> 查看可用命令');
+  out('');
+
+  /* ── 技能卡片渲染 ── */
   var pills=document.getElementById('pills'),grid=document.getElementById('grid'),q=document.getElementById('q'),active='all';
   function renderPills(){
-    var h='<button class="pill'+(active==='all'?' active':'')+'" data-cat="all">[all]<span class="ct">'+SKILLS.length+'</span></button>';
+    var h='<button class="pill'+(active==='all'?' active':'')+'" data-cat="all">all <span class="ct">'+SKILLS.length+'</span></button>';
     CATS.forEach(function(c){
       var n=SKILLS.filter(function(s){return s.cat===c.id;}).length;
-      h+='<button class="pill'+(active===c.id?' active':'')+'" data-cat="'+c.id+'"><span class="d" style="background:'+c.color+';box-shadow:0 0 7px '+c.color+'"></span>'+c.name+'<span class="ct">'+n+'</span></button>';
+      h+='<button class="pill'+(active===c.id?' active':'')+'" data-cat="'+c.id+'"><span class="d" style="background:'+c.color+'"></span>'+c.name+' <span class="ct">'+n+'</span></button>';
     });
     pills.innerHTML=h;
   }
   function card(s){
-    var c=catById[s.cat],r=rgb(c.color),command=cmd(s.name);
-    return '<article class="card win reveal" data-cat="'+s.cat+'" style="--c:'+c.color+';--cglow:rgba('+r[0]+','+r[1]+','+r[2]+',.5)">'+
-      '<div class="win-bar"><span class="tc-dots wdots"><i></i><i></i><i></i></span><span class="win-title">~/skills/<b>'+esc(s.name)+'</b></span><span class="tc-cat">'+c.name+'</span></div>'+
+    var c=catById[s.cat],command=cmd(s.name);
+    return '<article class="card win reveal" data-cat="'+s.cat+'" style="--c:'+c.color+'">'+
+      '<div class="win-bar"><span class="wdots"><i></i><i></i><i></i></span><span class="wtitle">~/skills/<b>'+esc(s.name)+'</b></span><span class="wtag">'+c.name+'</span></div>'+
       '<div class="cbody">'+
-        '<div class="cico">'+s.icon+'</div>'+
+        '<div class="chead">'+
+          '<i class="ctile">'+s.icon+'</i>'+
+          '<div class="chead-text"><h3>'+esc(s.name)+'</h3><span class="cchip">◆ '+c.name+'</span></div>'+
+        '</div>'+
         '<p class="cdesc">'+esc(s.desc)+'</p>'+
-        '<div class="ctags">'+s.tags.map(function(t){return '<span>#'+esc(t)+'</span>';}).join('')+'</div>'+
+        '<div class="ctags">'+s.tags.map(function(t){return '<span>'+esc(t)+'</span>';}).join('')+'</div>'+
         '<div class="ccmd"><span class="pr">$</span><code><span class="c1">npx</span> skills <span class="c1">add</span> <span class="c2">'+REPO+'</span> <span class="c3">--skill</span> '+esc(s.name)+'</code>'+
-        '<button class="mini" data-copy="'+esc(command)+'" title="复制" aria-label="复制 '+esc(s.name)+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>'+
+        '<button class="mini" data-copy="'+esc(command)+'" title="复制安装命令" aria-label="复制"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>'+
       '</div></article>';
   }
   function render(list){
-    if(!list.length){grid.innerHTML='<div class="empty"><div class="big">∅</div>no match — grep 换个关键词试试</div>';return;}
+    if(!list.length){grid.innerHTML='<div class="empty"><div class="big">∅</div>没有匹配，换个 grep 关键词</div>';return;}
     grid.innerHTML=list.map(card).join('');
     observe();
   }
   function apply(){
     var s=q.value.trim().toLowerCase();
     render(SKILLS.filter(function(k){
-      var ok=(active==='all'||k.cat===active);
+      var okCat=active==='all'||k.cat===active;
       var hay=(k.name+' '+k.desc+' '+k.tags.join(' ')+' '+catById[k.cat].name).toLowerCase();
-      return ok&&(!s||hay.indexOf(s)>-1);
+      return okCat&&(!s||hay.indexOf(s)>-1);
     }));
   }
   pills.addEventListener('click',function(e){var b=e.target.closest('.pill');if(!b)return;active=b.getAttribute('data-cat');renderPills();apply();});
   q.addEventListener('input',apply);
 
+  /* ── 复制 ── */
   var toast=document.getElementById('toast'),tt;
   function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('show');},1700);}
   function copy(text,btn){
-    function done(){if(btn){var h=btn.innerHTML;btn.classList.add('done');if(btn.classList.contains('cp'))btn.innerHTML='✓ copied';setTimeout(function(){btn.classList.remove('done');if(btn.classList.contains('cp'))btn.innerHTML=h;},1500);}say('已复制 · '+text);}
+    function done(){if(btn){var h=btn.innerHTML;btn.classList.add('done');btn.innerHTML='✓ 已复制';setTimeout(function(){btn.classList.remove('done');btn.innerHTML=h;},1500);}say('已复制 · '+text);}
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(fb);}else fb();
     function fb(){var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy');done();}catch(e){say('复制失败');}document.body.removeChild(t);}
   }
   document.addEventListener('click',function(e){var b=e.target.closest('[data-copy]');if(b)copy(b.getAttribute('data-copy'),b);});
-  document.getElementById('heroCopy').addEventListener('click',function(){copy(this.getAttribute('data-cmd'),null);});
 
-  var io=('IntersectionObserver'in window)?new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{threshold:.1,rootMargin:'0px 0px -30px 0px'}):null;
-  function observe(){var els=document.querySelectorAll('.reveal:not(.in)');Array.prototype.forEach.call(els,function(el,i){el.style.transitionDelay=(Math.min(i,8)*50)+'ms';if(io)io.observe(el);else el.classList.add('in');});}
-
-  var sd=false;
+  /* ── 滚动显现 + 数字 ── */
+  var io=('IntersectionObserver'in window)?new IntersectionObserver(function(es){
+    es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});
+  },{threshold:.1,rootMargin:'0px 0px -30px 0px'}):null;
+  function observe(){
+    document.querySelectorAll('.reveal:not(.in)').forEach(function(el,i){
+      el.style.transitionDelay=(Math.min(i,8)*45)+'ms';
+      if(io)io.observe(el);else el.classList.add('in');
+    });
+  }
+  var counted=false;
   function maybeCount(){
-    if(sd)return;var st=document.querySelector('.stats');if(!st)return;
-    if(st.getBoundingClientRect().top<window.innerHeight-40){sd=true;
-      Array.prototype.forEach.call(document.querySelectorAll('[data-count]'),function(el){var tg=+el.getAttribute('data-count'),t0=performance.now();(function tick(n){var p=Math.min((n-t0)/1400,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(tg*e);if(p<1)requestAnimationFrame(tick);})(performance.now());});
+    if(counted)return;
+    var st=document.querySelector('.stats');
+    if(st&&st.getBoundingClientRect().top<innerHeight-30){
+      counted=true;
+      document.querySelectorAll('[data-count]').forEach(function(el){
+        var tg=+el.getAttribute('data-count'),t0=performance.now();
+        (function tick(n){var p=Math.min((n-t0)/1300,1);el.textContent=Math.round(tg*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(tick);})(performance.now());
+      });
     }
   }
-  window.addEventListener('scroll',maybeCount,{passive:true});
+  addEventListener('scroll',maybeCount,{passive:true});
 
-  // boot 计数（装饰）
-  var bc=document.getElementById('bootCount');
-  if(bc&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){var done=false;(function boot(){if(done)return;var v=+bc.textContent||0;if(v<17){bc.textContent=v+1;setTimeout(boot,55);}else done=true;})();}
+  /* ── FAQ 折叠 ── */
+  document.querySelectorAll('.faq-item').forEach(function(item){
+    var qd=item.querySelector('.faq-q'),aw=item.querySelector('.faq-a');
+    qd.addEventListener('click',function(){
+      var open=item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(function(o){o.classList.remove('open');o.querySelector('.faq-a').style.maxHeight='0';});
+      if(!open){item.classList.add('open');aw.style.maxHeight=aw.scrollHeight+'px';}
+    });
+  });
 
   renderPills();render(SKILLS);maybeCount();
 })();
