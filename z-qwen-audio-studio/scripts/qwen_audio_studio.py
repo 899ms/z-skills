@@ -76,10 +76,32 @@ def redact(value: Any, secrets: Iterable[str]) -> Any:
             r"\1<redacted>",
             value,
         )
+        result = re.sub(
+            r"data:[A-Za-z0-9.+-]+/[A-Za-z0-9.+-]+;base64,"
+            r"[A-Za-z0-9+/=_-]+",
+            "<redacted audio data>",
+            result,
+        )
+        result = re.sub(
+            r'("audio_data"\s*:\s*")[^"]*(")',
+            r'\1<redacted audio data>\2',
+            result,
+        )
         for secret in secret_values:
             result = result.replace(secret, "<redacted>")
         return result
     return value
+
+
+def _safe_response_body(response, secrets: Iterable[str]) -> str:
+    try:
+        value = response.json()
+    except Exception:
+        value = response.text
+    safe_value = redact(value, secrets)
+    if isinstance(safe_value, str):
+        return safe_value
+    return json.dumps(safe_value, ensure_ascii=False)
 
 
 def post_generation(
@@ -119,16 +141,23 @@ def post_generation(
                 result = response.json()
             except Exception as exc:
                 raise ApiError("HTTP 200 response is not valid JSON") from exc
-            url = result.get("output", {}).get("audio", {}).get("url")
-            if not url:
-                request_id = result.get("request_id", "<missing request_id>")
+            if not isinstance(result, dict):
+                raise ApiError("HTTP 200 response must be a JSON object")
+            output = result.get("output")
+            audio = output.get("audio") if isinstance(output, dict) else None
+            url = audio.get("url") if isinstance(audio, dict) else None
+            if not isinstance(url, str) or not url.strip():
+                request_id = redact(
+                    str(result.get("request_id", "<missing request_id>")),
+                    sensitive_values,
+                )
                 raise ApiError(
                     f"HTTP 200 response missing output.audio.url "
                     f"(request_id={request_id})"
                 )
             return result
 
-        safe_text = redact(response.text, sensitive_values)
+        safe_text = _safe_response_body(response, sensitive_values)
         if response.status_code not in retryable or attempt == max_attempts:
             raise ApiError(f"HTTP {response.status_code}: {safe_text}")
         sleeper(2 ** (attempt - 1))
@@ -143,34 +172,48 @@ def download_audio(
     max_attempts: int = 3,
     validator=None,
     sleeper=time.sleep,
+    redact_secrets: Iterable[str] = (),
 ) -> Path:
     destination.parent.mkdir(parents=True, exist_ok=True)
     part_path = destination.with_name(destination.name + ".part")
     retryable = {429, 500, 502, 503, 504}
+    sensitive_values = list(redact_secrets)
     try:
         for attempt in range(1, max_attempts + 1):
             try:
                 response = session.get(url, stream=True, timeout=120)
+                if response.status_code == 200:
+                    with part_path.open("wb") as handle:
+                        for chunk in response.iter_content(chunk_size=65536):
+                            if chunk:
+                                handle.write(chunk)
+                    if validator is not None:
+                        validator(part_path)
+                    part_path.replace(destination)
+                    return destination
+
+                safe_text = _safe_response_body(response, sensitive_values)
+                if (
+                    response.status_code not in retryable
+                    or attempt == max_attempts
+                ):
+                    raise ApiError(
+                        f"audio download HTTP {response.status_code}: {safe_text}"
+                    )
+            except ValidationError:
+                raise
+            except ApiError:
+                raise
             except Exception as exc:
                 if attempt == max_attempts:
+                    safe_error = redact(str(exc), sensitive_values)
                     raise ApiError(
-                        f"audio download failed after {max_attempts} attempts"
+                        f"audio download failed after {max_attempts} attempts: "
+                        f"{safe_error}"
                     ) from exc
-                sleeper(2 ** (attempt - 1))
-                continue
-
-            if response.status_code == 200:
-                with part_path.open("wb") as handle:
-                    for chunk in response.iter_content(chunk_size=65536):
-                        if chunk:
-                            handle.write(chunk)
-                if validator is not None:
-                    validator(part_path)
-                part_path.replace(destination)
-                return destination
-
-            if response.status_code not in retryable or attempt == max_attempts:
-                raise ApiError(f"audio download HTTP {response.status_code}")
+            finally:
+                if part_path.exists() and not destination.exists():
+                    part_path.unlink()
             sleeper(2 ** (attempt - 1))
     finally:
         if part_path.exists():
@@ -376,14 +419,22 @@ def encode_reference(path: Path) -> Dict[str, str]:
     return {"audio_data": f"data:{mime_type};base64,{encoded}"}
 
 
-def probe_audio(path: Path) -> Dict[str, Any]:
+def probe_audio(
+    path: Path,
+    output_format: Optional[str] = None,
+    sample_rate: int = 48000,
+    channels: int = 2,
+) -> Dict[str, Any]:
     command = [
         "ffprobe",
         "-v",
         "error",
     ]
-    if path.suffix.lower() == ".pcm":
-        command.extend(["-f", "s16le", "-ar", "48000", "-ac", "2"])
+    effective_format = output_format or path.suffix.lower().lstrip(".")
+    if effective_format == "pcm":
+        command.extend(
+            ["-f", "s16le", "-ar", str(sample_rate), "-ac", str(channels)]
+        )
     command.extend(
         [
             "-show_entries",
@@ -415,10 +466,18 @@ def probe_audio(path: Path) -> Dict[str, Any]:
     return metadata
 
 
-def decode_audio(path: Path) -> None:
+def decode_audio(
+    path: Path,
+    output_format: Optional[str] = None,
+    sample_rate: int = 48000,
+    channels: int = 2,
+) -> None:
     command = ["ffmpeg", "-v", "error"]
-    if path.suffix.lower() == ".pcm":
-        command.extend(["-f", "s16le", "-ar", "48000", "-ac", "2"])
+    effective_format = output_format or path.suffix.lower().lstrip(".")
+    if effective_format == "pcm":
+        command.extend(
+            ["-f", "s16le", "-ar", str(sample_rate), "-ac", str(channels)]
+        )
     command.extend(["-i", str(path), "-f", "null", "-"])
     completed = subprocess.run(command, text=True, capture_output=True)
     if completed.returncode != 0:
@@ -427,9 +486,14 @@ def decode_audio(path: Path) -> None:
         )
 
 
-def validate_generated_audio(path: Path) -> Dict[str, Any]:
-    metadata = probe_audio(path)
-    decode_audio(path)
+def validate_generated_audio(
+    path: Path,
+    output_format: Optional[str] = None,
+    sample_rate: int = 48000,
+    channels: int = 2,
+) -> Dict[str, Any]:
+    metadata = probe_audio(path, output_format, sample_rate, channels)
+    decode_audio(path, output_format, sample_rate, channels)
     return metadata
 
 
@@ -451,8 +515,11 @@ def write_report(
     output_file = safe_report.get("output_file", "unknown")
     duration = safe_report.get("duration_seconds", "unknown")
     validation = safe_report.get("validation", {})
+    status = safe_report.get("status", "unknown")
+    error = safe_report.get("error")
     markdown = (
         "# Qwen Audio Next generation report\n\n"
+        f"- Status: `{status}`\n"
         f"- Model: `{model}`\n"
         f"- Request ID: `{request_id}`\n"
         f"- Output file: `{output_file}`\n"
@@ -460,6 +527,8 @@ def write_report(
         f"- ffprobe: `{validation.get('ffprobe', 'unknown')}`\n"
         f"- ffmpeg decode: `{validation.get('ffmpeg', 'unknown')}`\n"
     )
+    if error:
+        markdown += f"- Error: `{error}`\n"
     markdown_path.write_text(markdown, encoding="utf-8")
     return json_path, markdown_path
 
@@ -538,58 +607,91 @@ def run_generate(args) -> int:
     )
     endpoint = build_endpoint(workspace_id)
     session = requests.Session()
-    result = post_generation(
-        session,
-        endpoint,
-        api_key,
-        payload,
-        redact_secrets=[workspace_id],
-    )
-
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_name = args.output_name or (
-        datetime.now().strftime("%Y%m%d-%H%M%S") + f"-{args.mode}"
-    )
-    if not re.fullmatch(r"[A-Za-z0-9._\-\u4e00-\u9fff]+", output_name):
-        raise ConfigError(
-            "output name may contain letters, numbers, Chinese, dot, underscore, and hyphen"
-        )
-    audio_path = output_dir / f"{output_name}.{args.format}"
-    prompt_path = output_dir / f"{output_name}-prompt.txt"
-    prompt_path.write_text(prompt + "\n", encoding="utf-8")
-
-    metadata_holder: Dict[str, Any] = {}
-
-    def validator(part_path: Path) -> None:
-        metadata_holder.update(validate_generated_audio(part_path))
-
-    audio_url = result["output"]["audio"]["url"]
-    download_audio(session, audio_url, audio_path, validator=validator)
-    metadata = metadata_holder or validate_generated_audio(audio_path)
-    duration = float(metadata["format"]["duration"])
     report = {
+        "status": "starting",
         "model": MODEL_ID,
-        "request_id": result.get("request_id", "unknown"),
-        "output_file": audio_path.name,
-        "prompt_file": prompt_path.name,
-        "duration_seconds": duration,
+        "request_id": "unavailable",
         "request": payload,
-        "response": {
-            "finish_reason": result.get("output", {}).get("finish_reason"),
-            "audio": {
-                "id": result.get("output", {}).get("audio", {}).get("id"),
-                "duration": result.get("output", {}).get("audio", {}).get(
-                    "duration"
-                ),
-                "expires_at": result.get("output", {}).get("audio", {}).get(
-                    "expires_at"
-                ),
-            },
-        },
-        "validation": {"ffprobe": "pass", "ffmpeg": "pass"},
+        "validation": {"ffprobe": "not run", "ffmpeg": "not run"},
     }
-    write_report(output_dir, report, [api_key, workspace_id])
+    sensitive_values = [api_key, workspace_id]
+    write_report(output_dir, report, sensitive_values)
+
+    try:
+        result = post_generation(
+            session,
+            endpoint,
+            api_key,
+            payload,
+            redact_secrets=[workspace_id],
+        )
+        report["request_id"] = result.get("request_id", "unknown")
+
+        output_name = args.output_name or (
+            datetime.now().strftime("%Y%m%d-%H%M%S") + f"-{args.mode}"
+        )
+        if not re.fullmatch(r"[A-Za-z0-9._\-\u4e00-\u9fff]+", output_name):
+            raise ConfigError(
+                "output name may contain letters, numbers, Chinese, dot, "
+                "underscore, and hyphen"
+            )
+        audio_path = output_dir / f"{output_name}.{args.format}"
+        prompt_path = output_dir / f"{output_name}-prompt.txt"
+        prompt_path.write_text(prompt + "\n", encoding="utf-8")
+
+        metadata_holder: Dict[str, Any] = {}
+
+        def validator(part_path: Path) -> None:
+            metadata_holder.update(
+                validate_generated_audio(
+                    part_path,
+                    output_format=args.format,
+                    sample_rate=args.sample_rate,
+                    channels=args.channels,
+                )
+            )
+
+        audio = result["output"]["audio"]
+        download_audio(
+            session,
+            audio["url"],
+            audio_path,
+            validator=validator,
+            redact_secrets=sensitive_values,
+        )
+        metadata = metadata_holder or validate_generated_audio(
+            audio_path,
+            output_format=args.format,
+            sample_rate=args.sample_rate,
+            channels=args.channels,
+        )
+        duration = float(metadata["format"]["duration"])
+        report.update(
+            {
+                "status": "success",
+                "output_file": audio_path.name,
+                "prompt_file": prompt_path.name,
+                "duration_seconds": duration,
+                "response": {
+                    "finish_reason": result["output"].get("finish_reason"),
+                    "audio": {
+                        "id": audio.get("id"),
+                        "duration": audio.get("duration"),
+                        "expires_at": audio.get("expires_at"),
+                    },
+                },
+                "validation": {"ffprobe": "pass", "ffmpeg": "pass"},
+            }
+        )
+    except (ConfigError, ApiError, ValidationError, OSError) as exc:
+        report["status"] = "failed"
+        report["error"] = redact(str(exc), sensitive_values)
+        write_report(output_dir, report, sensitive_values)
+        raise
+
+    write_report(output_dir, report, sensitive_values)
     print(f"Audio saved: {audio_path}")
     print(f"Report saved: {output_dir / 'generation-report.md'}")
     return 0

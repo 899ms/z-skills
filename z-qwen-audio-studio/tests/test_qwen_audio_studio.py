@@ -3,6 +3,7 @@ import importlib.util
 import io
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -55,6 +56,15 @@ class RaisingSession:
     def post(self, *args, **kwargs):
         del args, kwargs
         raise RuntimeError(self.message)
+
+
+class RaisingStreamResponse(FakeResponse):
+    def iter_content(self, chunk_size=65536):
+        del chunk_size
+        raise RuntimeError(
+            "stream failed at workspace-sensitive-test-value."
+            "cn-beijing.maas.aliyuncs.com"
+        )
 
 
 class QwenAudioStudioTests(unittest.TestCase):
@@ -251,6 +261,96 @@ class QwenAudioStudioTests(unittest.TestCase):
         self.assertNotIn("AAAA-sensitive", serialized)
         self.assertIn("<redacted audio data>", serialized)
 
+    def test_http_error_json_redacts_audio_data(self):
+        session = FakeSession(
+            post_responses=[
+                FakeResponse(
+                    400,
+                    {
+                        "code": "CLIENT_ERROR",
+                        "message": "bad reference",
+                        "audio_data": "data:audio/wav;base64,PRIVATE_AUDIO",
+                    },
+                )
+            ]
+        )
+
+        with self.assertRaises(MODULE.ApiError) as caught:
+            MODULE.post_generation(
+                session,
+                "https://example.invalid",
+                "secret",
+                {"model": "x"},
+                max_attempts=1,
+            )
+
+        message = str(caught.exception)
+        self.assertNotIn("PRIVATE_AUDIO", message)
+        self.assertIn("<redacted audio data>", message)
+
+    def test_audio_null_is_a_controlled_api_error(self):
+        session = FakeSession(
+            post_responses=[
+                FakeResponse(
+                    200,
+                    {
+                        "request_id": "req-audio-null",
+                        "output": {"audio": None},
+                    },
+                )
+            ]
+        )
+
+        with self.assertRaisesRegex(MODULE.ApiError, "req-audio-null"):
+            MODULE.post_generation(
+                session, "https://example.invalid", "secret", {"model": "x"}
+            )
+
+    def test_missing_url_error_redacts_sensitive_request_id(self):
+        sensitive = "workspace-sensitive-test-value"
+        session = FakeSession(
+            post_responses=[
+                FakeResponse(
+                    200,
+                    {
+                        "request_id": f"req-{sensitive}",
+                        "output": {"audio": {}},
+                    },
+                )
+            ]
+        )
+
+        with self.assertRaises(MODULE.ApiError) as caught:
+            MODULE.post_generation(
+                session,
+                "https://example.invalid",
+                "secret",
+                {"model": "x"},
+                redact_secrets=[sensitive],
+            )
+
+        self.assertNotIn(sensitive, str(caught.exception))
+
+    def test_stream_failure_is_controlled_and_redacted(self):
+        sensitive = "workspace-sensitive-test-value"
+        destination = self.temp_dir / "audio.wav"
+        session = FakeSession(
+            get_responses=[RaisingStreamResponse(200, content=b"")]
+        )
+
+        with self.assertRaises(MODULE.ApiError) as caught:
+            MODULE.download_audio(
+                session,
+                "https://audio.invalid/test.wav",
+                destination,
+                max_attempts=1,
+                redact_secrets=[sensitive],
+                sleeper=lambda _: None,
+            )
+
+        self.assertNotIn(sensitive, str(caught.exception))
+        self.assertFalse(destination.with_name("audio.wav.part").exists())
+
     def test_failed_download_removes_part_file(self):
         destination = self.temp_dir / "audio.wav"
         session = FakeSession(
@@ -279,6 +379,42 @@ class QwenAudioStudioTests(unittest.TestCase):
         with mock.patch.object(MODULE.subprocess, "run", return_value=completed):
             with self.assertRaisesRegex(MODULE.ValidationError, "ffprobe"):
                 MODULE.probe_audio(path)
+
+    def test_pcm_probe_uses_explicit_requested_audio_parameters(self):
+        completed = mock.Mock(
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "format": {
+                        "duration": "1.0",
+                        "size": "32000",
+                        "format_name": "s16le",
+                    },
+                    "streams": [
+                        {
+                            "codec_name": "pcm_s16le",
+                            "sample_rate": "16000",
+                            "channels": 1,
+                        }
+                    ],
+                }
+            ),
+            stderr="",
+        )
+        with mock.patch.object(
+            MODULE.subprocess, "run", return_value=completed
+        ) as run:
+            MODULE.probe_audio(
+                self.temp_dir / "audio.pcm.part",
+                output_format="pcm",
+                sample_rate=16000,
+                channels=1,
+            )
+
+        command = run.call_args.args[0]
+        self.assertIn("s16le", command)
+        self.assertEqual(command[command.index("-ar") + 1], "16000")
+        self.assertEqual(command[command.index("-ac") + 1], "1")
 
     def test_compile_command_writes_prompt_without_credentials(self):
         source = self.temp_dir / "input.md"
@@ -335,6 +471,67 @@ class QwenAudioStudioTests(unittest.TestCase):
         self.assertNotIn("workspace-sensitive", combined)
         self.assertNotIn("AAAA-sensitive", combined)
         self.assertIn("req-123", combined)
+
+    def test_download_failure_writes_current_failed_report(self):
+        output_dir = self.temp_dir / "output"
+        args = MODULE.parse_args(
+            [
+                "generate",
+                "--mode",
+                "narration",
+                "--prompt",
+                "一位女声说：“测试。”",
+                "--output-name",
+                "failure-test",
+                "--output-dir",
+                str(output_dir),
+            ]
+        )
+        response = {
+            "request_id": "req-download-failed",
+            "output": {
+                "finish_reason": "stop",
+                "audio": {
+                    "url": "https://audio.invalid/test.wav",
+                    "id": "audio-id",
+                },
+            },
+        }
+        fake_requests = mock.Mock()
+        fake_requests.Session.return_value = mock.Mock()
+        with mock.patch.dict(
+            os.environ,
+            {
+                "DASHSCOPE_API_KEY": "secret-key",
+                "SFM_WORKSPACE_ID": "workspace-sensitive-test-value",
+            },
+            clear=True,
+        ), mock.patch.dict(
+            sys.modules, {"requests": fake_requests}
+        ), mock.patch.object(
+            MODULE.importlib.util,
+            "find_spec",
+            return_value=object(),
+        ), mock.patch.object(
+            MODULE, "post_generation", return_value=response
+        ), mock.patch.object(
+            MODULE,
+            "download_audio",
+            side_effect=MODULE.ValidationError("decode failed"),
+        ):
+            with self.assertRaisesRegex(MODULE.ValidationError, "decode failed"):
+                MODULE.run_generate(args)
+
+        report = json.loads(
+            (output_dir / "generation-report.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(report["status"], "failed")
+        self.assertEqual(report["request_id"], "req-download-failed")
+        self.assertIn("decode failed", report["error"])
+        self.assertNotIn("secret-key", json.dumps(report))
+        self.assertNotIn(
+            "workspace-sensitive-test-value", json.dumps(report)
+        )
 
 
 if __name__ == "__main__":
