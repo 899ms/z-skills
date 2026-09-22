@@ -1,6 +1,6 @@
 # z-skills
 
-`z-skills` 是一组可复用的本地 Agent Skills，用来把常见工作流沉淀成稳定能力：网页素材采集、视频下载、视频学习网页、文档解析、邮件读取、表格处理、Markdown 转 Word/PDF、证据型资料问答、docx 模板格式刷、手写幻灯片、手写 HTML 动画，以及文章四格漫画配图
+`z-skills` 是一组可复用的本地 Agent Skills，用来把常见工作流沉淀成稳定能力：网页素材采集、视频下载、视频学习网页、全景音频生成、文档解析、邮件读取、表格处理、Markdown 转 Word/PDF、证据型资料问答、docx 模板格式刷、手写幻灯片、手写 HTML 动画，以及文章四格漫画配图
 
 这些 skill 默认面向中文创作、知识管理和自动化任务，适合放到本地 `.agent/skills/` 或 Codex/Claude Code 等支持 Skills 的环境里使用
 
@@ -11,6 +11,7 @@
 | `z-web-pack` | 采集网页正文、链接、图片和视频链接，整理成本地写作素材包 | 采集网页素材、把链接正文拿到本地、做成备用写作素材包 |
 | `z-video-downloader` | 下载 YouTube、B站、微信视频号、m3u8、mp4 直链等视频 | 下载视频、下载 B站、下载 YouTube、下载 m3u8、下载视频号 |
 | `z-video-study-webpage-qwen` | 用转录、关键帧和 Qwen 多模态分析视频，生成图文学习网页 | 理解视频内容、视频学习总结网页、关键知识点匹配画面 |
+| `z-qwen-audio-studio` | 用 qwen-audio-3.1-tts-next 生成播客、广播剧、广告和包含环境声、音效、BGM 的完整音频 | 全景音频、双人播客、广播剧、环境声、动作音效、参考音频、TTS Next |
 | `z-smart-xparse` | 用 xparse-cli 把 PDF、图片、Office 等文档转成 Markdown 或结构化结果 | 解析 PDF、文档转 Markdown、读取扫描件 |
 | `z-mail-reader` | 通过 IMAP 读取邮件、下载附件、摘要邮件内容、监听新邮件 | 读邮件、查收邮件、邮件摘要、监听邮件 |
 | `z-md-to-word` | 把本地 Markdown 文章转换成 Word 文档，生成 `.docx` 和 `.doc` 并做打开检查 | 转成doc、Markdown转Word、md转doc、导出Word |
@@ -92,6 +93,40 @@ cp -R z-* "/path/to/your/.agent/skills/"
 ```bash
 npx skills add tjxj/z-skills --skill z-grounded-source-qa
 ```
+
+单独安装 Qwen Audio Next Skill：
+
+```bash
+npx skills add tjxj/z-skills --skill z-qwen-audio-studio
+```
+
+## Qwen Audio Next 全景音频 Skill
+
+`z-qwen-audio-studio` 调用阿里云百炼 `qwen-audio-3.1-tts-next`，支持：
+
+- 单人叙事、商业广告、双人或多人播客、广播剧
+- 环境声、动作音效和背景音乐
+- 最多 3 条参考音频，通过 `@voice1`、`@voice2`、`@voice3` 引用
+- WAV、MP3、PCM 输出，最高 48kHz 双声道
+- 下载后自动执行 ffprobe 和 ffmpeg 完整解码验收
+- API Key、Workspace ID、参考音频 Base64 和接口域名脱敏
+
+首次使用前需准备：
+
+1. 在阿里云百炼华北 2（北京）地域开通 `qwen-audio-3.1-tts-next`
+2. 创建该地域可用的 API Key
+3. 获取 API Key 所在业务空间的 Workspace ID
+4. 安装 Python 3.9+、`requests`、`ffmpeg` 和 `ffprobe`
+5. 在私有终端会话设置环境变量
+
+```bash
+export DASHSCOPE_API_KEY="your-api-key"
+export SFM_WORKSPACE_ID="your-workspace-id"
+cd z-qwen-audio-studio
+python3 scripts/qwen_audio_studio.py doctor
+```
+
+`doctor` 只显示依赖和环境变量是否已配置，不显示凭据内容。完整准备流程见 `z-qwen-audio-studio/references/setup.md`。
 
 ## 新增：Markdown 转 Word Skill
 
@@ -215,6 +250,13 @@ z-skills/
     SKILL.md
     scripts/
     tests/
+  z-qwen-audio-studio/
+    SKILL.md
+    agents/
+    references/
+    scripts/
+    tests/
+    evals/
   z-liang-wenfeng-grounded-voice/
     SKILL.md
     examples/

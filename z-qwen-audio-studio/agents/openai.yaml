@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qwen Audio Next 音频工作室"
+  short_description: "生成播客、广播剧和全景声场音频"
+  default_prompt: "使用 qwen-audio-3.1-tts-next 把需求编译为提示词，生成音频并完成验收。"

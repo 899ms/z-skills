@@ -1,0 +1,23 @@
+{
+  "skill_name": "z-qwen-audio-studio",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "做一段雨夜书房里的双人播客，窗外有雨声，两个人聊 AI 创作。",
+      "expected_output": "使用 Next 播客模式编译 Prompt，生成音频并返回验收报告。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "把这段文案做成有开门声和轻微配乐的商业广告音频。",
+      "expected_output": "使用 Next 广告模式，保留台词并设置音效时序。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "我想用 qwen-audio-3.1-tts-flash 的 longanhuan_v3.1 音色读一段话。",
+      "expected_output": "不触发本 Skill，因为请求明确指向 Flash 系统音色 TTS。",
+      "files": []
+    }
+  ]
+}
